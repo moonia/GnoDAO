@@ -8,6 +8,9 @@ import (
 	"strconv"
 )
 
+// TODO: GRC-20
+// TODO: token stream
+
 // TODO: move out to p/dao
 type Proposal struct {
 	Title       string
