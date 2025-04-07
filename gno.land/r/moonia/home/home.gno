@@ -1,13 +1,14 @@
 package home
 
 import (
+	"std"
+	"strconv"
 	"gno.land/p/moul/txlink"
 	"gno.land/p/moul/md"
 	"gno.land/p/moonia/utils"
-	"std"
-	"strconv"
 )
 
+// TODO: finish to implement basics methods (addMember, etc..)
 // TODO: GRC-20
 // TODO: token stream
 
@@ -78,6 +79,8 @@ func CreateProposal(title string, description string) string {
 }
 
 // TODO: move method to r/dao
+// works with cli
+// fix args types
 func Vote(indexStr string, voteYesStr string) string {
 	index, err := strconv.Atoi(indexStr)
 	if err != nil {
