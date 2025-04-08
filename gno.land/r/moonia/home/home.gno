@@ -8,10 +8,6 @@ import (
 	"gno.land/p/moonia/utils"
 )
 
-// TODO: finish to implement basics methods (addMember, etc..)
-// TODO: GRC-20
-// TODO: token stream
-
 // TODO: move out to p/dao
 type Proposal struct {
 	Title       string
@@ -95,10 +91,9 @@ func Vote(indexStr string, voteYesStr string) {
 		panic("Invalid proposal index.")
 	}
 	p := &myDAO.Proposals[index]
-	// TODO: handle active status
-	// if !p.Active {
-	// 	panic("Voting is closed for this proposal.")
-	// }
+	if !p.Active {
+		panic("Voting is closed for this proposal.")
+	}
 	if p.Voters[caller] {
 		panic("You have already voted.")
 	}
@@ -118,23 +113,59 @@ func CreateProposalTest() string {
 	return CreateProposal("Survey", "Would you like to visit guatemala?")
 }
 
+func CloseProposal(indexStr string) string {
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		panic("Invalid index.")
+	}
+	if index < 0 || index >= len(myDAO.Proposals) {
+		panic("Proposal does not exist.")
+	}
+	caller := utils.GetCaller()
+	p := &myDAO.Proposals[index]
+	if p.Creator != caller {
+		panic("Only the proposal creator can close it.")
+	}
+	if !p.Active {
+		panic("Proposal is already closed.")
+	}
+	p.Active = false
+	return "✅ Proposal '" + p.Title + "' has been closed."
+}
+
 func ShowProposals() string {
-	out := "## Proposals 📋\n\n"
-	if len(myDAO.Proposals) == 0 {
-		return out + "_No proposals yet._\n"
-	}
+	activeOut := "## Active Proposals\n\n"
+	closedOut := "## Closed Proposals\n\n"
+	hasActive := false
+	hasClosed := false
+
 	for i, p := range myDAO.Proposals {
-		status := "Active 🟢"
-		if !p.Active {
-			status = "Closed 🔴"
+		proposalStr := "**[" + strconv.Itoa(i) + "]** " + p.Title + "\n"
+		proposalStr += p.Description + "\n\n"
+		proposalStr += "by _" + p.Creator.String() + "_\n\n"
+		proposalStr += "✅ " + strconv.Itoa(p.YesVotes) + " | ❌ " + strconv.Itoa(p.NoVotes) + "\n"
+
+		if p.Active {
+			hasActive = true
+			proposalStr += "(Active) — " +
+				md.Link("Vote Yes", txlink.Call("Vote", "args", strconv.Itoa(i), "args", "true")) + " | " +
+				md.Link("Vote No", txlink.Call("Vote", "args", strconv.Itoa(i), "args", "false")) + "\n\n" +
+				md.Link("❌ Close proposal", txlink.Call("CloseProposal", "args", strconv.Itoa(i))) + "\n\n ---"
+			activeOut += proposalStr + "\n\n"
+		} else {
+			hasClosed = true
+			proposalStr += "(Closed)\n"
+			closedOut += proposalStr + "\n\n ---- \n\n"
 		}
-		out += "**[" + strconv.Itoa(i) + "]** " + p.Title + " :\n" + p.Description + "\n" + status + "\n\n"
-		out += "by _" + p.Creator.String() + "_" + "\n"
-		out += "  - ✅ " + strconv.Itoa(p.YesVotes) + " | ❌ " + strconv.Itoa(p.NoVotes) + " — "
-		out += md.Link("Vote Yes", txlink.Call("Vote", "args", strconv.Itoa(i), "args", "true")) + " | "
-		out += md.Link("Vote No", txlink.Call("Vote", "args", strconv.Itoa(i), "args", "false")) + "\n\n"
 	}
-	return out
+
+	if !hasActive {
+		activeOut += "_No active proposals._\n\n"
+	}
+	if !hasClosed {
+		closedOut += "_No closed proposals._\n\n"
+	}
+	return activeOut + "\n" + closedOut
 }
 
 func renderDAO() string {
