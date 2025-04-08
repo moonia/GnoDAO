@@ -11,7 +11,6 @@ type DAO struct {
 	Whitelist map[std.Address]bool
 	Proposals []Proposal
 }
-// TODO: move out to p/dao
 type Proposal struct {
 	Title       string
 	Description string
@@ -32,12 +31,13 @@ func init() {
 }
 
 // TODO: move method to r/dao
-func JoinWhitelist() {
+func JoinWhitelist() string {
 	caller := utils.GetCaller()
 	if myDAO.Whitelist[caller] {
 		panic("You're already in the whitelist.")
 	}
 	myDAO.Whitelist[caller] = true
+	return "You have successfully joined the whitelist!"
 }
 
 // TODO: move method to r/dao
@@ -68,11 +68,11 @@ func CreateProposal(title string, description string) string {
 		Active:      true,
 	}
 	myDAO.Proposals = append(myDAO.Proposals, p)
-	return "📢 Proposal created: " + title
+	return "Proposal created: " + title
 }
 
 // TODO: move method to r/dao
-func Vote(indexStr string, voteYesStr string) {
+func Vote(indexStr string, voteYesStr string) string {
 	index, err := strconv.Atoi(indexStr)
 	if err != nil {
 		panic("Invalid proposal index format.")
@@ -99,8 +99,10 @@ func Vote(indexStr string, voteYesStr string) {
 	p.Voters[caller] = true
 	if voteYes {
 		p.YesVotes++
+		return "Vote recorded: YES for '" + p.Title + "'"
 	} else {
 		p.NoVotes++
+		return "Vote recorded: NO for '" + p.Title + "'"
 	}
 }
 
@@ -128,7 +130,7 @@ func CloseProposal(indexStr string) string {
 		panic("Proposal is already closed.")
 	}
 	p.Active = false
-	return "✅ Proposal '" + p.Title + "' has been closed."
+	return "Proposal '" + p.Title + "' has been closed."
 }
 
 func ShowProposals() string {
@@ -164,6 +166,39 @@ func ShowProposals() string {
 		closedOut += "_No closed proposals._\n\n"
 	}
 	return activeOut + "\n" + closedOut
+}
+
+func GetProposal(indexStr string) Proposal {
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		panic("Invalid proposal index.")
+	}
+	if index < 0 || index >= len(myDAO.Proposals) {
+		panic("Proposal does not exist.")
+	}
+	return myDAO.Proposals[index]
+}
+
+// 	works with cli for the moment (need UI text input)
+func EditProposal(indexStr, newTitle, newDescription string) string {
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		panic("Invalid proposal index.")
+	}
+	if index < 0 || index >= len(myDAO.Proposals) {
+		panic("Proposal does not exist.")
+	}
+	p := &myDAO.Proposals[index]
+	caller := utils.GetCaller()
+	if p.Creator != caller {
+		panic("Only the creator can edit the proposal.")
+	}
+	if !p.Active {
+		panic("Cannot edit a closed proposal.")
+	}
+	p.Title = newTitle
+	p.Description = newDescription
+	return "Proposal updated: " + newTitle + newDescription
 }
 
 func Stats() string {
