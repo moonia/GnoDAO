@@ -4,6 +4,10 @@ import (
 	"gno.land/p/moonia/dao"
 )
 
+func SetAdmin() string {
+	return ds.DAO.SetAdmin()
+}
+
 func JoinDAO() string {
 	return ds.DAO.JoinDAO()
 }

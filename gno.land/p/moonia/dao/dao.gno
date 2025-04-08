@@ -7,13 +7,31 @@ import (
 )
 
 type DAO struct {
+	Admin     std.Address
 	Whitelist map[std.Address]bool
 }
 
 func NewDAO() *DAO {
 	return &DAO{
+		Admin:     "",
 		Whitelist: make(map[std.Address]bool),
 	}
+}
+
+func (d *DAO) SetAdmin() string {
+	if d.Admin != "" {
+		panic("Admin is already set.")
+	}
+	caller := utils.GetCaller()
+	d.Admin = caller
+	return "Admin set to: " + caller.String()
+}
+
+func (d *DAO) ShowAdmin() string {
+	if d.Admin == "" {
+		return "_No admin set._"
+	}
+	return "Admin: `" + d.Admin.String() + "`"
 }
 
 func (d *DAO) JoinDAO() string {
