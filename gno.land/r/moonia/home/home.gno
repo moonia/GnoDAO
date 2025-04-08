@@ -1,244 +1,32 @@
 package home
 
 import (
-	"std"
-	"strconv"
 	"gno.land/p/moul/txlink"
 	"gno.land/p/moul/md"
-	"gno.land/p/moonia/utils"
 )
-type DAO struct {
-	Whitelist map[std.Address]bool
-	Proposals []Proposal
-}
-type Proposal struct {
-	Title       string
-	Description string
-	Creator     std.Address
-	YesVotes    int
-	NoVotes     int
-	Voters      map[std.Address]bool
-	Active      bool
-}
-
-var myDAO DAO
-
-func init() {
-	myDAO = DAO{
-		Whitelist: make(map[std.Address]bool),
-		Proposals: []Proposal{},
-	}
-}
-
-// TODO: move method to r/dao
-func JoinDAO() string {
-	caller := utils.GetCaller()
-	if myDAO.Whitelist[caller] {
-		panic("You're already a member of the DAO.")
-	}
-	myDAO.Whitelist[caller] = true
-	return "You have successfully joined the DAO."
-}
-
-func LeaveDAO() string {
-	caller := utils.GetCaller()
-	if !myDAO.Whitelist[caller] {
-		panic("You are not a member of the DAO.")
-	}
-
-	delete(myDAO.Whitelist, caller)
-	return "You have successfully left the DAO."
-}
-
-// TODO: move method to r/dao
-func ShowWhitelist() string {
-	out := "## Whitelist Members ✅\n\n"
-	if len(myDAO.Whitelist) == 0 {
-		return out + "_Whitelist is empty._\n"
-	}
-	for addr := range myDAO.Whitelist {
-		out += "- " + addr.String() + "\n"
-	}
-	return out
-}
-
-// TODO: move method to r/dao
-func CreateProposal(title string, description string) string {
-	caller := utils.GetCaller()
-	if !myDAO.Whitelist[caller] {
-		panic("Only whitelisted members can create proposals.")
-	}
-	p := Proposal{
-		Title:       title,
-		Description: description,
-		Creator:     caller,
-		YesVotes:    0,
-		NoVotes:     0,
-		Voters:      make(map[std.Address]bool),
-		Active:      true,
-	}
-	myDAO.Proposals = append(myDAO.Proposals, p)
-	return "Proposal created: " + title
-}
-
-// default test
-// or
-// gnokey maketx call -pkgpath "gno.land/r/moonia/home" -func "CreateProposal" -args "TITLE" -args "DESCRIPTION" -gas-fee 1000000ugnot -gas-wanted 5000000 -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" ADDRESSHERE
-func CreateProposalTest() string {
-	return CreateProposal("Survey", "Would you like to visit guatemala?")
-}
-
-func CloseProposal(indexStr string) string {
-	index, err := strconv.Atoi(indexStr)
-	if err != nil {
-		panic("Invalid index.")
-	}
-	if index < 0 || index >= len(myDAO.Proposals) {
-		panic("Proposal does not exist.")
-	}
-	caller := utils.GetCaller()
-	p := &myDAO.Proposals[index]
-	if p.Creator != caller {
-		panic("Only the proposal creator can close it.")
-	}
-	if !p.Active {
-		panic("Proposal is already closed.")
-	}
-	p.Active = false
-	return "Proposal '" + p.Title + "' has been closed."
-}
-
-func ShowProposals() string {
-	activeOut := "## Active Proposals\n\n"
-	closedOut := "## Closed Proposals\n\n"
-	hasActive := false
-	hasClosed := false
-
-	for i, p := range myDAO.Proposals {
-		proposalStr := "**[" + strconv.Itoa(i) + "]** " + p.Title + "\n"
-		proposalStr += p.Description + "\n\n"
-		proposalStr += "by _" + p.Creator.String() + "_\n\n"
-		proposalStr += "✅ " + strconv.Itoa(p.YesVotes) + " | ❌ " + strconv.Itoa(p.NoVotes) + "\n"
-
-		if p.Active {
-			hasActive = true
-			proposalStr += "(Active) — " +
-				md.Link("Vote Yes", txlink.Call("Vote", "args", strconv.Itoa(i), "args", "true")) + " | " +
-				md.Link("Vote No", txlink.Call("Vote", "args", strconv.Itoa(i), "args", "false")) + "\n\n" +
-				md.Link("❌ Close proposal", txlink.Call("CloseProposal", "args", strconv.Itoa(i))) + "\n\n ---"
-			activeOut += proposalStr + "\n\n"
-		} else {
-			hasClosed = true
-			proposalStr += "(Closed)\n"
-			closedOut += proposalStr + "\n\n ---- \n\n"
-		}
-	}
-
-	if !hasActive {
-		activeOut += "_No active proposals._\n\n"
-	}
-	if !hasClosed {
-		closedOut += "_No closed proposals._\n\n"
-	}
-	return activeOut + "\n" + closedOut
-}
-
-// 	works with cli
-func GetProposal(indexStr string) Proposal {
-	index, err := strconv.Atoi(indexStr)
-	if err != nil {
-		panic("Invalid proposal index.")
-	}
-	if index < 0 || index >= len(myDAO.Proposals) {
-		panic("Proposal does not exist.")
-	}
-	return myDAO.Proposals[index]
-}
-
-// 	works with cli for the moment (need UI text input)
-func EditProposal(indexStr, newTitle, newDescription string) string {
-	index, err := strconv.Atoi(indexStr)
-	if err != nil {
-		panic("Invalid proposal index.")
-	}
-	if index < 0 || index >= len(myDAO.Proposals) {
-		panic("Proposal does not exist.")
-	}
-	p := &myDAO.Proposals[index]
-	caller := utils.GetCaller()
-	if p.Creator != caller {
-		panic("Only the creator can edit the proposal.")
-	}
-	if !p.Active {
-		panic("Cannot edit a closed proposal.")
-	}
-	p.Title = newTitle
-	p.Description = newDescription
-	return "Proposal updated: " + newTitle + newDescription
-}
-
-// TODO: move method to r/dao
-func Vote(indexStr string, voteYesStr string) string {
-	index, err := strconv.Atoi(indexStr)
-	if err != nil {
-		panic("Invalid proposal index format.")
-	}
-
-	voteYes := voteYesStr == "true"
-	caller := utils.GetCaller()
-
-	if !myDAO.Whitelist[caller] {
-		panic("Only whitelisted members can vote.")
-	}
-	// for cli
-	if index < 0 || index >= len(myDAO.Proposals) {
-		panic("Invalid proposal index.")
-	}
-	p := &myDAO.Proposals[index]
-	if !p.Active {
-		panic("Voting is closed for this proposal.")
-	}
-	if p.Voters[caller] {
-		panic("You have already voted.")
-	}
-
-	p.Voters[caller] = true
-	if voteYes {
-		p.YesVotes++
-		return "Vote recorded: YES for '" + p.Title + "'"
-	} else {
-		p.NoVotes++
-		return "Vote recorded: NO for '" + p.Title + "'"
-	}
-}
-
-func Stats() string {
-	total := len(myDAO.Proposals)
-	active := 0
-	for _, p := range myDAO.Proposals {
-		if p.Active {
-			active++
-		}
-	}
-	return "### Stats\n\n" +
-		"- Total Proposals: " + strconv.Itoa(total) + "\n" +
-		"- Active Proposals: " + strconv.Itoa(active) + "\n" +
-		"- Whitelist Members: " + strconv.Itoa(len(myDAO.Whitelist)) + "\n"
-}
-
-func renderDAO() string {
-	out := "# Moonia's DAO\n\n"
-	out += Stats() + "\n"
-	out += "## Actions:\n\n"
-	out += "- " + md.Link("Join DAO", txlink.Call("JoinDAO")) + "\n"
-	out += "- " + md.Link("Leave DAO", txlink.Call("LeaveDAO")) + "\n"
-	out += "- " + md.Link("Create Sample Proposal", txlink.Call("CreateProposalTest")) + "\n"
-	out += ShowWhitelist() + "\n"
-	out += ShowProposals()
-	return out
-}
 
 func Render(path string) string {
 	return renderDAO()
 }
 
+func renderDAO() string {
+	out := "# Moonia's DAO\n\n"
+	out += ds.DAO.Stats(len(ds.Proposals.Proposals), countActive()) + "\n"
+	out += "## Actions:\n\n"
+	out += "- " + md.Link("Join DAO", txlink.Call("JoinDAO")) + "\n"
+	out += "- " + md.Link("Leave DAO", txlink.Call("LeaveDAO")) + "\n"
+	out += "- " + md.Link("Create Sample Proposal", txlink.Call("CreateProposalTest")) + "\n"
+	out += ds.DAO.ShowWhitelist() + "\n"
+	out += ds.Proposals.ShowProposals()
+	return out
+}
+
+func countActive() int {
+	count := 0
+	for _, p := range ds.Proposals.Proposals {
+		if p.Active {
+			count++
+		}
+	}
+	return count
+}
