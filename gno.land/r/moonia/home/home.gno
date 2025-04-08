@@ -7,7 +7,10 @@ import (
 	"gno.land/p/moul/md"
 	"gno.land/p/moonia/utils"
 )
-
+type DAO struct {
+	Whitelist map[std.Address]bool
+	Proposals []Proposal
+}
 // TODO: move out to p/dao
 type Proposal struct {
 	Title       string
@@ -17,11 +20,6 @@ type Proposal struct {
 	NoVotes     int
 	Voters      map[std.Address]bool
 	Active      bool
-}
-
-type DAO struct {
-	Whitelist map[std.Address]bool
-	Proposals []Proposal
 }
 
 var myDAO DAO
@@ -168,8 +166,23 @@ func ShowProposals() string {
 	return activeOut + "\n" + closedOut
 }
 
+func Stats() string {
+	total := len(myDAO.Proposals)
+	active := 0
+	for _, p := range myDAO.Proposals {
+		if p.Active {
+			active++
+		}
+	}
+	return "### Stats\n\n" +
+		"- Total Proposals: " + strconv.Itoa(total) + "\n" +
+		"- Active Proposals: " + strconv.Itoa(active) + "\n" +
+		"- Whitelist Members: " + strconv.Itoa(len(myDAO.Whitelist)) + "\n"
+}
+
 func renderDAO() string {
 	out := "# Moonia's DAO\n\n"
+	out += Stats() + "\n"
 	out += "## Actions:\n\n"
 	out += "- " + md.Link("Join Whitelist", txlink.Call("JoinWhitelist")) + "\n"
 	out += "- " + md.Link("Create Sample Proposal", txlink.Call("CreateProposalTest")) + "\n"
