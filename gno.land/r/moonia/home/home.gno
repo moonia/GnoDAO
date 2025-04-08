@@ -40,6 +40,16 @@ func JoinWhitelist() string {
 	return "You have successfully joined the whitelist!"
 }
 
+func LeaveDAO() string {
+	caller := utils.GetCaller()
+	if !myDAO.Whitelist[caller] {
+		panic("You are not a member of the DAO.")
+	}
+
+	delete(myDAO.Whitelist, caller)
+	return "You have successfully left the DAO."
+}
+
 // TODO: move method to r/dao
 func ShowWhitelist() string {
 	out := "## Whitelist Members ✅\n\n"
@@ -69,41 +79,6 @@ func CreateProposal(title string, description string) string {
 	}
 	myDAO.Proposals = append(myDAO.Proposals, p)
 	return "Proposal created: " + title
-}
-
-// TODO: move method to r/dao
-func Vote(indexStr string, voteYesStr string) string {
-	index, err := strconv.Atoi(indexStr)
-	if err != nil {
-		panic("Invalid proposal index format.")
-	}
-
-	voteYes := voteYesStr == "true"
-	caller := utils.GetCaller()
-
-	if !myDAO.Whitelist[caller] {
-		panic("Only whitelisted members can vote.")
-	}
-	// for cli
-	if index < 0 || index >= len(myDAO.Proposals) {
-		panic("Invalid proposal index.")
-	}
-	p := &myDAO.Proposals[index]
-	if !p.Active {
-		panic("Voting is closed for this proposal.")
-	}
-	if p.Voters[caller] {
-		panic("You have already voted.")
-	}
-
-	p.Voters[caller] = true
-	if voteYes {
-		p.YesVotes++
-		return "Vote recorded: YES for '" + p.Title + "'"
-	} else {
-		p.NoVotes++
-		return "Vote recorded: NO for '" + p.Title + "'"
-	}
 }
 
 // default test
@@ -168,6 +143,7 @@ func ShowProposals() string {
 	return activeOut + "\n" + closedOut
 }
 
+// 	works with cli
 func GetProposal(indexStr string) Proposal {
 	index, err := strconv.Atoi(indexStr)
 	if err != nil {
@@ -201,6 +177,41 @@ func EditProposal(indexStr, newTitle, newDescription string) string {
 	return "Proposal updated: " + newTitle + newDescription
 }
 
+// TODO: move method to r/dao
+func Vote(indexStr string, voteYesStr string) string {
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		panic("Invalid proposal index format.")
+	}
+
+	voteYes := voteYesStr == "true"
+	caller := utils.GetCaller()
+
+	if !myDAO.Whitelist[caller] {
+		panic("Only whitelisted members can vote.")
+	}
+	// for cli
+	if index < 0 || index >= len(myDAO.Proposals) {
+		panic("Invalid proposal index.")
+	}
+	p := &myDAO.Proposals[index]
+	if !p.Active {
+		panic("Voting is closed for this proposal.")
+	}
+	if p.Voters[caller] {
+		panic("You have already voted.")
+	}
+
+	p.Voters[caller] = true
+	if voteYes {
+		p.YesVotes++
+		return "Vote recorded: YES for '" + p.Title + "'"
+	} else {
+		p.NoVotes++
+		return "Vote recorded: NO for '" + p.Title + "'"
+	}
+}
+
 func Stats() string {
 	total := len(myDAO.Proposals)
 	active := 0
@@ -220,6 +231,7 @@ func renderDAO() string {
 	out += Stats() + "\n"
 	out += "## Actions:\n\n"
 	out += "- " + md.Link("Join Whitelist", txlink.Call("JoinWhitelist")) + "\n"
+	out += "- " + md.Link("Leave DAO", txlink.Call("LeaveDAO")) + "\n"
 	out += "- " + md.Link("Create Sample Proposal", txlink.Call("CreateProposalTest")) + "\n"
 	out += ShowWhitelist() + "\n"
 	out += ShowProposals()
