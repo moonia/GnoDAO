@@ -38,13 +38,12 @@ func init() {
 }
 
 // TODO: move method to r/dao
-func JoinWhitelist() string {
+func JoinWhitelist() {
 	caller := utils.GetCaller()
 	if myDAO.Whitelist[caller] {
-		return "You're already in the whitelist."
+		panic("You're already in the whitelist.")
 	}
 	myDAO.Whitelist[caller] = true
-	return "Successfully joined the whitelist!"
 }
 
 // TODO: move method to r/dao
@@ -63,7 +62,7 @@ func ShowWhitelist() string {
 func CreateProposal(title string, description string) string {
 	caller := utils.GetCaller()
 	if !myDAO.Whitelist[caller] {
-		return "Only whitelisted members can create proposals."
+		panic("Only whitelisted members can create proposals.")
 	}
 	p := Proposal{
 		Title:       title,
@@ -80,28 +79,28 @@ func CreateProposal(title string, description string) string {
 
 // TODO: move method to r/dao
 // works with cli
-// fix args types
-func Vote(indexStr string, voteYesStr string) string {
+func Vote(indexStr string, voteYesStr string) {
 	index, err := strconv.Atoi(indexStr)
 	if err != nil {
-		return "Invalid proposal index format."
+		panic("Invalid proposal index format.")
 	}
 
 	voteYes := voteYesStr == "true"
+	// voteYes := strings.ToLower(strings.TrimSpace(voteYesStr)) == "true"
 	caller := utils.GetCaller()
 
 	if !myDAO.Whitelist[caller] {
-		return "Only whitelisted members can vote."
+		panic("Only whitelisted members can vote.")
 	}
-	if index < 0 || index >= len(myDAO.Proposals) {
-		return "Invalid proposal index."
-	}
+	// if index < 0 || index >= len(myDAO.Proposals) {
+	// 	return "Invalid proposal index."
+	// }
 	p := &myDAO.Proposals[index]
-	if !p.Active {
-		return "Voting is closed for this proposal."
-	}
+	// if !p.Active {
+	// 	return "Voting is closed for this proposal."
+	// }
 	if p.Voters[caller] {
-		return "You have already voted."
+		panic("You have already voted.")
 	}
 
 	p.Voters[caller] = true
@@ -110,7 +109,6 @@ func Vote(indexStr string, voteYesStr string) string {
 	} else {
 		p.NoVotes++
 	}
-	return "Vote recorded!"
 }
 
 // default test
@@ -133,8 +131,8 @@ func ShowProposals() string {
 		out += "**[" + strconv.Itoa(i) + "]** " + p.Title + " :\n" + p.Description + "\n" + status + "\n\n"
 		out += "by _" + p.Creator.String() + "_" + "\n"
 		out += "  - ✅ " + strconv.Itoa(p.YesVotes) + " | ❌ " + strconv.Itoa(p.NoVotes) + " — "
-		out += md.Link("Vote Yes", txlink.Call("Vote", strconv.Itoa(i), "true")) + " | "
-		out += md.Link("Vote No", txlink.Call("Vote", strconv.Itoa(i), "false")) + "\n\n"
+		out += md.Link("Vote Yes", txlink.Call("Vote", "args", strconv.Itoa(i), "args", "true")) + " | "
+		out += md.Link("Vote No", txlink.Call("Vote", "args", strconv.Itoa(i), "args", "false")) + "\n\n"
 	}
 	return out
 }
@@ -152,3 +150,4 @@ func renderDAO() string {
 func Render(path string) string {
 	return renderDAO()
 }
+
