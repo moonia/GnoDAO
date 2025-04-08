@@ -1,9 +1,11 @@
 package dao
 
+// import "std"
+
 type IAdmin interface {
 	SetAdmin() string
-	// TransferAdmin(newAdmin) string
-	// KickMember(addr) string
+	TransferAdmin(newAdmin string) string
+	// KickMember(addr std.Address) string
 }
 
 type IDao interface {
@@ -20,4 +22,5 @@ type IProposal interface {
 	EditProposal(indexStr, newTitle, newDescription string) string
 	GetProposal(indexStr string) Proposal
 	ShowProposals() string
+	// SetVotingPeriod(duration string) string // by the proposal owner (maybe admin too)
 }
