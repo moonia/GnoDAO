@@ -31,13 +31,13 @@ func init() {
 }
 
 // TODO: move method to r/dao
-func JoinWhitelist() string {
+func JoinDAO() string {
 	caller := utils.GetCaller()
 	if myDAO.Whitelist[caller] {
-		panic("You're already in the whitelist.")
+		panic("You're already a member of the DAO.")
 	}
 	myDAO.Whitelist[caller] = true
-	return "You have successfully joined the whitelist!"
+	return "You have successfully joined the DAO."
 }
 
 func LeaveDAO() string {
@@ -230,7 +230,7 @@ func renderDAO() string {
 	out := "# Moonia's DAO\n\n"
 	out += Stats() + "\n"
 	out += "## Actions:\n\n"
-	out += "- " + md.Link("Join Whitelist", txlink.Call("JoinWhitelist")) + "\n"
+	out += "- " + md.Link("Join DAO", txlink.Call("JoinDAO")) + "\n"
 	out += "- " + md.Link("Leave DAO", txlink.Call("LeaveDAO")) + "\n"
 	out += "- " + md.Link("Create Sample Proposal", txlink.Call("CreateProposalTest")) + "\n"
 	out += ShowWhitelist() + "\n"
