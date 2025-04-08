@@ -1,5 +1,11 @@
 package dao
 
+type IAdmin interface {
+	SetAdmin() string
+	// TransferAdmin(newAdmin) string
+	// KickMember(addr) string
+}
+
 type IDao interface {
 	JoinDAO() string
 	LeaveDAO() string
