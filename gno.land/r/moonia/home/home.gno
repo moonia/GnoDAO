@@ -78,7 +78,6 @@ func CreateProposal(title string, description string) string {
 }
 
 // TODO: move method to r/dao
-// works with cli
 func Vote(indexStr string, voteYesStr string) {
 	index, err := strconv.Atoi(indexStr)
 	if err != nil {
@@ -86,18 +85,19 @@ func Vote(indexStr string, voteYesStr string) {
 	}
 
 	voteYes := voteYesStr == "true"
-	// voteYes := strings.ToLower(strings.TrimSpace(voteYesStr)) == "true"
 	caller := utils.GetCaller()
 
 	if !myDAO.Whitelist[caller] {
 		panic("Only whitelisted members can vote.")
 	}
-	// if index < 0 || index >= len(myDAO.Proposals) {
-	// 	return "Invalid proposal index."
-	// }
+	// for cli
+	if index < 0 || index >= len(myDAO.Proposals) {
+		panic("Invalid proposal index.")
+	}
 	p := &myDAO.Proposals[index]
+	// TODO: handle active status
 	// if !p.Active {
-	// 	return "Voting is closed for this proposal."
+	// 	panic("Voting is closed for this proposal.")
 	// }
 	if p.Voters[caller] {
 		panic("You have already voted.")
